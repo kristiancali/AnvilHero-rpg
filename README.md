@@ -1,32 +1,40 @@
-# React + TypeScript + Vite
+# AnvilHero RPG
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A browser-based idle and auto-combat RPG built with React, TypeScript, and Tailwind CSS. Forge increasingly powerful gear at the Blacksmith Anvil, battle through escalating stages and bosses, summon permanent companions and relics, and earn offline idle rewards.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Auto-Combat Loop:** Fixed-timestep combat engine featuring 4 standard enemy waves followed by a Stage Boss on Wave 5. Defeating bosses advances the stage and awards Gems and Hammers; falling in battle resets the current stage back to Wave 1.
+- **Exponential Progression & Biomes:** Enemy stats and gold rewards scale exponentially ($\text{Base} \times 1.45^{\text{stage}}$) across distinct environments, including *Whispering Meadows*, *Crystal Caverns*, and *Obsidian Caldera*.
+- **Blacksmith Anvil & CDF Crafting:** Spend Hammers to forge Weapons, Armor, and Helmets using a Cumulative Distribution Function (CDF) over dynamic rarity weights (*Common* through *Legendary*). Upgrade the Anvil to improve drop odds and scale item stats, then compare new gear side-by-side to Equip or Sell.
+- **Gacha & Hard Pity System:** Spend boss-earned Gems to summon permanent Companions and Relics that grant multiplicative Attack and HP bonuses, complete with a 50-pull hard pity guarantee for Legendary drops.
+- **Offline Idle Persistence:** Automatically saves progress to `localStorage` and calculates offline gold earnings (capped at 8 hours) when returning to the game.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework:** React 19 + TypeScript
+- **Build Tool:** Vite
+- **Styling:** Tailwind CSS
+- **Persistence:** Web Storage API (`localStorage`)
 
-## Expanding the Oxlint configuration
+## Project Structure
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+```text
+AnvilHero-rpg/
+├── public/
+│   └── images/              # Hero, enemy sprites, UI icons, and biome backgrounds
+└── src/
+    ├── components/
+    │   ├── AnvilPanel.tsx   # Gear forging, anvil upgrades, and equip/sell comparison modal
+    │   ├── CombatArena.tsx  # Biome backdrop, health bars, sprites, and combat log
+    │   └── GachaModal.tsx   # Summon interface, pity counter, and unlocked roster
+    ├── data/
+    │   ├── environments.ts  # Stage biomes, enemy pools, and boss definitions
+    │   └── gachaPool.ts     # Summon weights, pity cap, and companion/relic catalog
+    ├── engine/
+    │   ├── combat.ts        # Hero stat aggregation and exponential enemy scaling
+    │   ├── rng.ts           # CDF rarity distribution and gacha pity logic
+    │   └── storage.ts       # localStorage serialization and offline gold math
+    ├── types/
+    │   └── game.ts          # TypeScript interfaces for equipment, enemies, and state
+    └── App.tsx              # Main game loop and state orchestration
