@@ -11,11 +11,16 @@ export const INITIAL_GAME_STATE: GameState = {
   gems: 100, // Enough for 1 introductory Gacha pull
   hammers: 10,
   anvilLevel: 1,
-  pullsSinceLegendary: 0,
+  pullsSinceMythic: 0,
   equipped: {
     Weapon: null,
     Armor: null,
     Helmet: null,
+    Ring: null,
+    Shield: null,
+    Boots: null,
+    Necklace: null,
+    Gloves: null,
   },
   ownedGachaIds: [],
   lastSavedTime: Date.now(),

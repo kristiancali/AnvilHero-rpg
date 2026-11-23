@@ -88,6 +88,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
             />
             <div className="w-full flex justify-between text-sm font-semibold text-rose-300 mb-1">
               <span>{enemy.name}</span>
+              <span>
+                Lv.{enemy.level} {enemy.name}
+              </span>
               <span>ATK: {enemy.attack}</span>
             </div>
             <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">

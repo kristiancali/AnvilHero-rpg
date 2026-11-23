@@ -5,6 +5,7 @@ import { loadGame, saveGame } from "./engine/storage";
 import { CombatArena } from "./components/CombatArena";
 import { AnvilPanel } from "./components/AnvilPanel";
 import { GachaModal } from "./components/GachaModal";
+import { getCurrentWorldLevel } from "./engine/rng";
 
 const COMBAT_TICK_MS = 800; // Fixed-timestep combat tick interval (0.8 seconds)
 
@@ -128,6 +129,11 @@ export default function App() {
     }));
   };
 
+  const currentItemLevel = getCurrentWorldLevel(
+    gameState.stage,
+    gameState.wave,
+  );
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex justify-center">
       <div className="max-w-2xl w-full space-y-5">
@@ -157,7 +163,7 @@ export default function App() {
               onClick={() => setIsGachaOpen(true)}
               className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
             >
-              Summon ({gameState.pullsSinceLegendary}/50)
+              Summon ({gameState.pullsSinceMythic}/50)
             </button>
           </div>
         </header>
@@ -192,6 +198,7 @@ export default function App() {
           gold={gameState.gold}
           anvilLevel={gameState.anvilLevel}
           equipped={gameState.equipped}
+          currentItemLevel={currentItemLevel}
           onConsumeHammer={() =>
             setGameState((prev) => ({
               ...prev,
@@ -223,7 +230,7 @@ export default function App() {
           isOpen={isGachaOpen}
           onClose={() => setIsGachaOpen(false)}
           gems={gameState.gems}
-          pullsSinceLegendary={gameState.pullsSinceLegendary}
+          pullsSinceLegendary={gameState.pullsSinceMythic}
           ownedGachaIds={gameState.ownedGachaIds}
           onSummonComplete={handleSummonComplete}
         />
