@@ -7,6 +7,7 @@ export const GACHA_WEIGHTS: Record<Rarity, number> = {
   Rare: 14,
   Epic: 5,
   Legendary: 1,
+  Mythic: 0,
 };
 
 // Hard pity threshold: guarantees a Legendary on the 50th pull

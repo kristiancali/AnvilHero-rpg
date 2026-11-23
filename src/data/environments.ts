@@ -10,7 +10,7 @@ export const ENVIRONMENTS: Environment[] = [
     bgImage: "/images/environments/meadow-bg.png",
     mobs: [
       { name: "Green Slime", image: "/images/enemies/slime.png" },
-      { name: "Wild Boar", image: "/images/enemies/boar.png" },
+      { name: "Wild Boar", image: "/images/enemies/roar.png" },
     ],
     boss: { name: "Elder Treant", image: "/images/enemies/treant.png" },
   },
@@ -23,7 +23,7 @@ export const ENVIRONMENTS: Environment[] = [
     // Reuses existing sprites until you add cavern-specific enemy art
     mobs: [
       { name: "Cave Bat", image: "/images/enemies/slime.png" },
-      { name: "Rock Golem", image: "/images/enemies/boar.png" },
+      { name: "Rock Golem", image: "/images/enemies/roar.png" },
     ],
     boss: { name: "Amethyst Wyrm", image: "/images/enemies/treant.png" },
   },

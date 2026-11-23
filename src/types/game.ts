@@ -1,17 +1,36 @@
 // Defines all available rarity tiers in ascending order of power
-export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
+export type Rarity =
+  | "Common"
+  | "Uncommon"
+  | "Rare"
+  | "Epic"
+  | "Legendary"
+  | "Mythic";
 
 // Defines equipment slots for crafted gear
-export type EquipmentSlot = "Weapon" | "Armor" | "Helmet";
+export type EquipmentSlot =
+  | "Weapon"
+  | "Armor"
+  | "Helmet"
+  | "Ring"
+  | "Shield"
+  | "Boots"
+  | "Necklace"
+  | "Gloves";
 
 // Represents a single piece of crafted equipment
 export interface Equipment {
   id: string;
   name: string;
+  level: number;
   slot: EquipmentSlot;
   rarity: Rarity;
   attackBonus: number;
   hpBonus: number;
+  deffenceBonus: number;
+  //critRate: number;
+  //critDamage: number;
+  //dogeChance: number;
   sellValue: number; // Gold gained if sold instead of equipped
 }
 
@@ -29,7 +48,8 @@ export interface GachaItem {
 // Represents the currently active enemy in combat
 export interface Enemy {
   name: string;
-  image: string; //image for enemie
+  image: string; //image for enemy
+  level: number;
   maxHp: number;
   currentHp: number;
   attack: number;
@@ -57,7 +77,7 @@ export interface GameState {
   gems: number;
   hammers: number;
   anvilLevel: number;
-  pullsSinceLegendary: number; // Tracks hard pity counter (cap = 50)
+  pullsSinceMythic: number; // Tracks hard pity counter (cap = 50)
   equipped: Record<EquipmentSlot, Equipment | null>;
   ownedGachaIds: string[]; // IDs of unlocked permanent companions/relics
   lastSavedTime: number; // Unix timestamp (ms) for offline idle calculation

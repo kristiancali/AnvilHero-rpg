@@ -42,21 +42,32 @@ export function calculateHeroStats(state: GameState): {
 export function spawnEnemy(stage: number, wave: number): Enemy {
   const env = getEnvironmentForStage(stage);
   const isBoss = wave === 5;
-  const stageMultiplier = Math.pow(STAGE_SCALING_BASE, stage - 1);
-  const bossMultiplier = isBoss ? 3.2 : 1.0; // Bosses have 3.2x HP and 1.8x Attack
+  const enemyLevel = (stage - 1) * 5 + wave; // Increases by +1 every wave
 
-  const maxHp = Math.round(45 * stageMultiplier * bossMultiplier);
-  const attack = Math.round(6 * stageMultiplier * (isBoss ? 1.8 : 1.0));
-  const goldReward = Math.round(10 * stageMultiplier * (isBoss ? 4 : 1));
-  const gemReward = isBoss ? 25 : 0; // Gems are exclusively earned from defeating bosses
+  const stageMultiplier = Math.pow(STAGE_SCALING_BASE, stage - 1);
+  // Slight extra scaling per wave level so each wave feels noticeably stronger
+  const waveLevelMultiplier = 1 + (wave - 1) * 0.1;
+  const bossMultiplier = isBoss ? 3.2 : 1.0;
 
   const chosen = isBoss
     ? env.boss
     : env.mobs[Math.floor(Math.random() * env.mobs.length)];
 
+  const maxHp = Math.round(
+    45 * stageMultiplier * waveLevelMultiplier * bossMultiplier,
+  );
+  const attack = Math.round(
+    6 * stageMultiplier * waveLevelMultiplier * (isBoss ? 1.8 : 1.0),
+  );
+  const goldReward = Math.round(
+    10 * stageMultiplier * waveLevelMultiplier * (isBoss ? 4 : 1),
+  );
+  const gemReward = isBoss ? 25 : 0;
+
   return {
     name: chosen.name,
     image: chosen.image,
+    level: enemyLevel,
     maxHp,
     currentHp: maxHp,
     attack,

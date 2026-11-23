@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { Equipment, EquipmentSlot, Rarity } from "../types/game";
 import { forgeEquipment } from "../engine/rng";
+import { getAnvilDropRates } from "../engine/rng";
 
 // Rarity border and text color mapping for Tailwind CSS
 const RARITY_STYLES: Record<Rarity, string> = {
@@ -9,12 +10,14 @@ const RARITY_STYLES: Record<Rarity, string> = {
   Rare: "border-sky-500 text-sky-400",
   Epic: "border-purple-500 text-purple-400",
   Legendary: "border-amber-400 text-amber-300 shadow-amber-500/20 shadow-md",
+  Mythic: "border-red-500 text-red-400 shadow-red-400/20 shadow-lg",
 };
 
 interface AnvilPanelProps {
   hammers: number;
   gold: number;
   anvilLevel: number;
+  currentItemLevel: number; // <-- 1. Add to props interface
   equipped: Record<EquipmentSlot, Equipment | null>;
   onConsumeHammer: () => void;
   onEquipItem: (item: Equipment) => void;
@@ -28,6 +31,7 @@ export const AnvilPanel: React.FC<AnvilPanelProps> = ({
   gold,
   anvilLevel,
   equipped,
+  currentItemLevel,
   onConsumeHammer,
   onEquipItem,
   onSellItem,
@@ -37,6 +41,9 @@ export const AnvilPanel: React.FC<AnvilPanelProps> = ({
   // Holds newly forged gear until the player chooses Equip or Sell
   const [pendingItem, setPendingItem] = useState<Equipment | null>(null);
 
+  // Inside the AnvilPanel component body:
+  const dropRates = getAnvilDropRates(anvilLevel);
+
   const upgradeCost = Math.round(100 * Math.pow(1.8, anvilLevel - 1));
   const hammerPackCost = 50;
 
@@ -44,7 +51,7 @@ export const AnvilPanel: React.FC<AnvilPanelProps> = ({
   const handleForge = () => {
     if (hammers <= 0 || pendingItem) return;
     onConsumeHammer();
-    const forged = forgeEquipment(anvilLevel);
+    const forged = forgeEquipment(anvilLevel, currentItemLevel);
     setPendingItem(forged);
   };
 
@@ -90,8 +97,19 @@ export const AnvilPanel: React.FC<AnvilPanelProps> = ({
       </div>
 
       {/* Currently Equipped Gear Grid */}
-      <div className="grid grid-cols-3 gap-3">
-        {(["Weapon", "Armor", "Helmet"] as EquipmentSlot[]).map((slot) => {
+      <div className="grid grid-cols-4 sm:grid-col-2">
+        {(
+          [
+            "Weapon",
+            "Armor",
+            "Helmet",
+            "Ring",
+            "Boots",
+            "Gloves",
+            "Shield",
+            "Necklace",
+          ] as EquipmentSlot[]
+        ).map((slot) => {
           const item = equipped[slot];
           return (
             <div
@@ -109,7 +127,8 @@ export const AnvilPanel: React.FC<AnvilPanelProps> = ({
                 <>
                   <div className="font-bold text-sm truncate">{item.name}</div>
                   <div className="text-xs text-slate-300 mt-1">
-                    +{item.attackBonus} ATK | +{item.hpBonus} HP
+                    +{item.attackBonus} ATK | +{item.hpBonus} HP | +
+                    {item.deffenceBonus} Deff
                   </div>
                 </>
               ) : (
@@ -118,6 +137,32 @@ export const AnvilPanel: React.FC<AnvilPanelProps> = ({
             </div>
           );
         })}
+      </div>
+
+      {/* Live Anvil Rarity Drop Rates (%) */}
+      <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-3">
+        <div className="text-[11px] uppercase tracking-wider text-slate-400 mb-2">
+          Forge Rarity Odds (Anvil Lv. {anvilLevel})
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
+          {(Object.entries(dropRates) as [Rarity, number][]).map(
+            ([rarity, pct]) => (
+              <div
+                key={rarity}
+                className={`rounded px-2 py-1.5 bg-slate-900 border ${
+                  pct > 0
+                    ? RARITY_STYLES[rarity]
+                    : "border-slate-800 text-slate-600"
+                }`}
+              >
+                <div className="text-[10px] font-semibold uppercase">
+                  {rarity}
+                </div>
+                <div className="text-xs font-bold mt-0.5">{pct}%</div>
+              </div>
+            ),
+          )}
+        </div>
       </div>
 
       {/* Forge Action Button */}
