@@ -27,26 +27,16 @@ export interface Equipment {
   rarity: Rarity;
   attackBonus: number;
   hpBonus: number;
-  deffenceBonus: number;
-  //critRate: number;
-  //critDamage: number;
-  //dogeChance: number;
+  defense: number;
+  critRate: number;
+  critDamage: number;
+  dodgeChance: number;
   sellValue: number; // Gold gained if sold instead of equipped
 }
 
-// Represents a permanent Gacha companion or relic
-export interface GachaItem {
-  id: string;
-  name: string;
-  type: "Companion" | "Relic";
-  rarity: Rarity;
-  attackMultiplier: number; // e.g., 0.15 adds +15% total attack
-  hpMultiplier: number; // e.g., 0.10 adds +10% total HP
-  description: string;
-}
-
-// Represents the currently active enemy in combat
+// Represents an enemy in combat
 export interface Enemy {
+  id: string; //id for each enemy
   name: string;
   image: string; //image for enemy
   level: number;
@@ -54,8 +44,10 @@ export interface Enemy {
   currentHp: number;
   attack: number;
   goldReward: number;
-  gemReward: number;
+  xpReward: number;
+  hammerDropChance: number;
   isBoss: boolean;
+  position: number; // 100 (far right) -> 32 (melee range next to Hero)
 }
 
 // Represents a biome/environment unlocked as stages progress
@@ -65,6 +57,7 @@ export interface Environment {
   minStage: number;
   bgGradient: string; // Tailwind CSS gradient classes
   bgImage: string; //image for background
+  backgroundImage: string;
   mobs: { name: string; image: string }[];
   boss: { name: string; image: string };
 }
@@ -73,12 +66,20 @@ export interface Environment {
 export interface GameState {
   stage: number;
   wave: number; // 1-4 are regular mobs, 5 is the stage Boss
+  enemies: Enemy[];
   gold: number;
-  gems: number;
   hammers: number;
   anvilLevel: number;
-  pullsSinceMythic: number; // Tracks hard pity counter (cap = 50)
   equipped: Record<EquipmentSlot, Equipment | null>;
-  ownedGachaIds: string[]; // IDs of unlocked permanent companions/relics
   lastSavedTime: number; // Unix timestamp (ms) for offline idle calculation
+  heroLevel: number;
+  xp: number;
+  xpToNextLevel: number;
+  statPoints: number;
+  allocatedStats: {
+    attack: number;
+    hp: number;
+    defense: number;
+    crit: number;
+  };
 }

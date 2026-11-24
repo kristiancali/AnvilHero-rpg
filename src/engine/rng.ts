@@ -1,14 +1,8 @@
 import type {
   Equipment,
   EquipmentSlot,
-  GachaItem,
   Rarity,
 } from "../types/game";
-import {
-  GACHA_POOL,
-  GACHA_WEIGHTS,
-  LEGENDARY_PITY_CAP,
-} from "../data/gachaPool";
 
 const RARITY_ORDER: Rarity[] = [
   "Common",
@@ -31,24 +25,22 @@ const RARITY_MULTIPLIERS: Record<Rarity, number> = {
 
 /**
  * Computes normalized drop percentages (0 - 100%) for each rarity at a given Anvil Level.
- * As anvilLevel rises:
- * - Common decays exponentially toward a 5% floor
- * - Higher tiers (Rare, Epic, Legendary, Mythic) unlock and scale upward
  */
 export function getAnvilDropRates(anvilLevel: number): Record<Rarity, number> {
   const lvl = Math.max(1, anvilLevel);
 
-  // Raw weights per level (Common shrinks rapidly; higher tiers unlock at milestone levels)
   const rawWeights: Record<Rarity, number> = {
-    Common: Math.max(5, 70 * Math.pow(0.84, lvl - 1)),
-    Uncommon: Math.max(12, 22 + (lvl <= 5 ? lvl * 1.5 : 7.5 - (lvl - 5) * 0.4)),
-    Rare: 6 + (lvl - 1) * 2.2,
-    Epic: lvl >= 2 ? 1.5 + (lvl - 2) * 1.4 : 0, // Unlocks at Anvil Lv. 2
-    Legendary: lvl >= 4 ? 0.5 + (lvl - 4) * 0.75 : 0, // Unlocks at Anvil Lv. 4
-    Mythic: lvl >= 7 ? 0.1 + (lvl - 7) * 0.35 : 0, // Unlocks at Anvil Lv. 7
+    Common: Math.max(0, 65 * Math.pow(0.78, lvl - 1)),
+    Uncommon: Math.max(0, 25 * Math.pow(0.86, Math.max(0, lvl - 2))),
+    Rare:
+      lvl <= 15
+        ? 8 + (lvl - 1) * 2.2
+        : Math.max(2, 38.8 * Math.pow(0.92, lvl - 15)),
+    Epic: lvl >= 2 ? 3 + (lvl - 2) * 2.4 : 0,
+    Legendary: lvl >= 4 ? 1.2 + (lvl - 4) * 1.6 : 0,
+    Mythic: lvl >= 6 ? 0.4 + (lvl - 6) * 0.95 : 0,
   };
 
-  // Normalize weights so the returned values always sum to exactly 100%
   const totalWeight = Object.values(rawWeights).reduce((sum, w) => sum + w, 0);
 
   const percentages = {} as Record<Rarity, number>;
@@ -57,6 +49,17 @@ export function getAnvilDropRates(anvilLevel: number): Record<Rarity, number> {
       ((rawWeights[rarity] / totalWeight) * 100).toFixed(2),
     );
   }
+
+  const roundedTotal = Object.values(percentages).reduce(
+    (sum, percentage) => sum + percentage,
+    0,
+  );
+  const adjustmentTarget = RARITY_ORDER.reduce((highest, rarity) =>
+    percentages[rarity] > percentages[highest] ? rarity : highest,
+  );
+  percentages[adjustmentTarget] = Number(
+    (percentages[adjustmentTarget] + 100 - roundedTotal).toFixed(2),
+  );
 
   return percentages;
 }
@@ -79,13 +82,81 @@ export function rollRarityCDF(rates: Record<Rarity, number>): Rarity {
   return "Common";
 }
 
-// Forges a new piece of equipment scaled by AnvilLevel and rolled Rarity
-export function forgeEquipment(
-  anvilLevel: number,
-  itemLevel: number,
-): Equipment {
+export function rollLevelVariance(heroLevel: number): number {
+  const minimum = Math.max(1, heroLevel - 1);
+  const maximum = heroLevel + 1;
+  return minimum + Math.floor(Math.random() * (maximum - minimum + 1));
+}
+
+export function getAnvilUpgradeCost(anvilLevel: number): number {
+  return Math.round(75 * Math.pow(Math.max(1, anvilLevel), 2));
+}
+
+type SecondaryBuff = "critRate" | "critDamage" | "defense" | "dodgeChance";
+
+function rollSecondaryBuffs(
+  slot: EquipmentSlot,
+  level: number,
+  rarity: Rarity,
+): Pick<Equipment, SecondaryBuff> {
+  const offensive = slot === "Weapon" || slot === "Gloves" || slot === "Ring";
+  const defensive = slot === "Armor" || slot === "Shield" || slot === "Helmet";
+  const weights: Record<SecondaryBuff, number> = offensive
+    ? { critRate: 5, critDamage: 4, defense: 1, dodgeChance: 1 }
+    : defensive
+      ? { critRate: 1, critDamage: 1, defense: 5, dodgeChance: 2 }
+      : { critRate: 3, critDamage: 1, defense: 2, dodgeChance: 5 };
+
+  const rarityTier = RARITY_ORDER.indexOf(rarity);
+  const levelBuffCount = level <= 10 ? 1 : level <= 25 ? 2 : 3;
+  const rarityBuffCount = Math.floor(rarityTier / 2);
+  const buffCount = Math.min(4, levelBuffCount + rarityBuffCount);
+  const remaining = { ...weights };
+  const result: Pick<Equipment, SecondaryBuff> = {
+    critRate: 0,
+    critDamage: 0,
+    defense: 0,
+    dodgeChance: 0,
+  };
+  const magnitude = (1 + level * 0.045) * (1 + rarityTier * 0.08);
+
+  for (let i = 0; i < buffCount; i++) {
+    const totalWeight = Object.values(remaining).reduce(
+      (total, weight) => total + weight,
+      0,
+    );
+    let roll = Math.random() * totalWeight;
+    const stat = (Object.keys(remaining) as SecondaryBuff[]).find((key) => {
+      roll -= remaining[key];
+      return roll < 0;
+    });
+    if (!stat) break;
+    remaining[stat] = 0;
+
+    switch (stat) {
+      case "critRate":
+        result.critRate = Math.max(0, Number((magnitude * 1.4).toFixed(1)));
+        break;
+      case "critDamage":
+        result.critDamage = Math.max(0, Number((magnitude * 3).toFixed(1)));
+        break;
+      case "defense":
+        result.defense = Math.max(0, Math.round(magnitude * 3));
+        break;
+      case "dodgeChance":
+        result.dodgeChance = Math.max(0, Number((magnitude * 0.8).toFixed(1)));
+        break;
+    }
+  }
+
+  return result;
+}
+
+// Forges gear at a level close to the hero's level, with slot-weighted buffs.
+export function forgeEquipment(anvilLevel: number, heroLevel: number): Equipment {
   const dropRates = getAnvilDropRates(anvilLevel);
   const rarity = rollRarityCDF(dropRates);
+  const level = rollLevelVariance(heroLevel);
 
   const slots: EquipmentSlot[] = [
     "Weapon",
@@ -99,76 +170,41 @@ export function forgeEquipment(
   ];
   const slot = slots[Math.floor(Math.random() * slots.length)];
 
-  const levelScale = 1 + (itemLevel - 1) * 0.08;
-  const powerScale =
-    Math.pow(1.25, anvilLevel - 1) * RARITY_MULTIPLIERS[rarity] * levelScale;
-
-  const isOffensive = slot === "Weapon" || slot === "Ring";
-  const isBalanced = slot === "Necklace";
-
-  const attackBonus = isOffensive
-    ? Math.round(12 * powerScale)
-    : isBalanced
-      ? Math.round(8 * powerScale)
-      : Math.round(3 * powerScale);
-
-  const hpBonus =
-    !isOffensive && !isBalanced
-      ? Math.round(60 * powerScale)
-      : isBalanced
-        ? Math.round(40 * powerScale)
-        : Math.round(15 * powerScale);
-
-  const deffenceBonus =
-    !isOffensive && !isBalanced
-      ? Math.round(60 * powerScale)
-      : isBalanced
-        ? Math.round(40 * powerScale)
-        : Math.round(15 * powerScale);
-
-  const sellValue = Math.round(15 * powerScale);
+  const offensive = slot === "Weapon" || slot === "Gloves" || slot === "Ring";
+  const defensive = slot === "Armor" || slot === "Shield" || slot === "Helmet";
+  const levelScale = 1 + (level - 1) * 0.04;
+  const anvilScale = 1 + (anvilLevel - 1) * 0.07;
+  const powerScale = levelScale * anvilScale * RARITY_MULTIPLIERS[rarity];
+  const buffs = rollSecondaryBuffs(slot, level, rarity);
+  const attackBonus = Math.round(
+    (offensive ? 14 : defensive ? 3 : 8) * powerScale,
+  );
+  const hpBonus = Math.round(
+    (defensive ? 55 : offensive ? 12 : 28) * powerScale,
+  );
+  const defense = Math.round(
+    (defensive ? 8 : offensive ? 1 : 3) * powerScale + buffs.defense,
+  );
+  const sellValue = Math.min(
+    1500,
+    Math.round(
+      15 *
+        (1 + (level - 1) * 0.025) *
+        (1 + (anvilLevel - 1) * 0.08) *
+        Math.sqrt(RARITY_MULTIPLIERS[rarity]),
+    ),
+  );
 
   return {
     id: crypto.randomUUID(),
     name: `${rarity} ${slot}`,
     slot,
     rarity,
-    level: itemLevel,
+    level,
     attackBonus,
     hpBonus,
-    deffenceBonus,
+    ...buffs,
+    defense,
     sellValue,
-  };
-}
-
-// Helper to calculate continuous world/wave level: Stage 1 Wave 1 = Lv. 1, Stage 1 Wave 2 = Lv. 2, etc.
-export function getCurrentWorldLevel(stage: number, wave: number): number {
-  return (stage - 1) * 5 + wave;
-}
-
-/**
- * Executes a single Gacha summon with hard pity enforcement.
- * Returns both the pulled item and the updated pity counter.
- */
-export function pullGacha(pullsSinceLegendary: number): {
-  item: GachaItem;
-  newPityCount: number;
-} {
-  const nextPullNumber = pullsSinceLegendary + 1;
-  // Guarantee Legendary if hard pity cap (50) is reached
-  const rolledRarity: Rarity =
-    nextPullNumber >= LEGENDARY_PITY_CAP
-      ? "Legendary"
-      : rollRarityCDF(GACHA_WEIGHTS);
-
-  // Filter pool by rolled rarity (fallback to full pool if a tier has no items)
-  const candidates = GACHA_POOL.filter((item) => item.rarity === rolledRarity);
-  const pool = candidates.length > 0 ? candidates : GACHA_POOL;
-  const item = pool[Math.floor(Math.random() * pool.length)];
-
-  return {
-    item,
-    // Reset pity counter to 0 on Legendary drop; otherwise increment
-    newPityCount: item.rarity === "Legendary" ? 0 : nextPullNumber,
   };
 }

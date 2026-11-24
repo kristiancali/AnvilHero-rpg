@@ -8,6 +8,7 @@ export const ENVIRONMENTS: Environment[] = [
     minStage: 1,
     bgGradient: "from-emerald-900 via-green-950 to-slate-950",
     bgImage: "/images/environments/meadow-bg.png",
+    backgroundImage: "/images/environments/meadow-bg.png",
     mobs: [
       { name: "Green Slime", image: "/images/enemies/slime.png" },
       { name: "Wild Boar", image: "/images/enemies/roar.png" },
@@ -20,6 +21,7 @@ export const ENVIRONMENTS: Environment[] = [
     minStage: 6,
     bgGradient: "from-indigo-950 via-purple-950 to-slate-950",
     bgImage: "/images/environments/caverns-bg.png",
+    backgroundImage: "/images/environments/caverns-bg.png",
     // Reuses existing sprites until you add cavern-specific enemy art
     mobs: [
       { name: "Cave Bat", image: "/images/enemies/slime.png" },
