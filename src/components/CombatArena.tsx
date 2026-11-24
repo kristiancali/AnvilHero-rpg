@@ -1,115 +1,107 @@
 import React from "react";
 import type { Enemy } from "../types/game";
+import type { FloatingDamage } from "../App";
 import { getEnvironmentForStage } from "../data/environments";
+import { formatNumber } from "../utils/format";
 
 interface CombatArenaProps {
   stage: number;
   wave: number;
-  heroHp: number;
+  heroCurrentHp: number;
   heroMaxHp: number;
-  heroAttack: number;
-  enemy: Enemy;
-  combatLog: string;
+  enemies: Enemy[];
+  floatingDamages: FloatingDamage[];
 }
 
 export const CombatArena: React.FC<CombatArenaProps> = ({
   stage,
-  wave,
-  heroHp,
+  heroCurrentHp,
   heroMaxHp,
-  heroAttack,
-  enemy,
-  combatLog,
+  enemies,
+  floatingDamages,
 }) => {
   const env = getEnvironmentForStage(stage);
-  const heroHpPct = Math.max(0, Math.min(100, (heroHp / heroMaxHp) * 100));
-  const enemyHpPct = Math.max(
+  const heroHpPct = Math.max(
     0,
-    Math.min(100, (enemy.currentHp / enemy.maxHp) * 100),
+    Math.min(100, (heroCurrentHp / heroMaxHp) * 100),
   );
 
   return (
-    // Added bg-cover, bg-center, and inline backgroundImage to display the biome artwork
-    <div
-      className={`rounded-xl bg-gradient-to-br ${env.bgGradient} bg-cover bg-center border border-slate-700 shadow-lg overflow-hidden`}
-      style={{ backgroundImage: `url(${env.bgImage})` }}
-    >
-      {/* Semi-transparent dark overlay so text and HP bars remain readable over the artwork */}
-      <div className="bg-slate-950/60 p-5">
-        {/* Stage & Wave Header */}
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <span className="text-xs uppercase tracking-wider text-slate-300">
-              {env.name}
-            </span>
-            <h2 className="text-xl font-bold text-white">
-              Stage {stage} — {enemy.isBoss ? "BOSS WAVE" : `Wave ${wave}/5`}
-            </h2>
-          </div>
-          {enemy.isBoss && (
-            <span className="px-3 py-1 text-xs font-bold bg-red-600 text-white rounded-full animate-pulse">
-              BOSS
-            </span>
-          )}
+    <div className="absolute inset-0 w-full h-full">
+      {/* Full-Screen Biome Artwork */}
+      <img
+        src={env.backgroundImage}
+        alt={env.name}
+        className="w-full h-full object-cover [image-rendering:pixelated] brightness-90"
+      />
+      {/* Subtle top and bottom gradients so HUD controls stand out cleanly */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-slate-950/45" />
+
+      {/* HERO (Left Side - Gold H in sketch, no box, no name) */}
+      <div className="absolute left-[30%] bottom-[50%] z-10 flex -translate-x-1/2 flex-col items-center">
+        {/* Compact Floating Health Bar */}
+        <div className="w-28 h-2.5 bg-slate-950/80 border border-slate-700/80 rounded-full overflow-hidden mb-2 shadow-md">
+          <div
+            className="h-full bg-emerald-400 transition-all duration-200"
+            style={{ width: `${heroHpPct}%` }}
+          />
         </div>
 
-        {/* Combatants Grid */}
-        <div className="grid grid-cols-2 gap-6 my-4">
-          {/* Hero Card */}
-          <div className="bg-slate-900/85 p-4 rounded-lg border border-slate-700 flex flex-col items-center">
-            {/* Added Hero Sprite with pixelated rendering for crisp pixel art */}
-            <img
-              src="/images/hero.png"
-              alt="Anvil Hero"
-              className="w-24 h-24 object-contain [image-rendering:pixelated] mb-2"
-            />
-            <div className="w-full flex justify-between text-sm font-semibold text-sky-300 mb-1">
-              <span>Anvil Hero</span>
-              <span>ATK: {heroAttack}</span>
-            </div>
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div
-                className="bg-emerald-500 h-full transition-all duration-200"
-                style={{ width: `${heroHpPct}%` }}
-              />
-            </div>
-            <div className="w-full text-xs text-slate-300 mt-1 text-right">
-              {heroHp} / {heroMaxHp} HP
-            </div>
-          </div>
-
-          {/* Enemy Card */}
-          <div className="bg-slate-900/85 p-4 rounded-lg border border-slate-700 flex flex-col items-center">
-            {/* Added Dynamic Enemy Sprite loaded from enemy.image */}
-            <img
-              src={enemy.image}
-              alt={enemy.name}
-              className="w-24 h-24 object-contain [image-rendering:pixelated] mb-2"
-            />
-            <div className="w-full flex justify-between text-sm font-semibold text-rose-300 mb-1">
-              <span>{enemy.name}</span>
-              <span>
-                Lv.{enemy.level} {enemy.name}
-              </span>
-              <span>ATK: {enemy.attack}</span>
-            </div>
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div
-                className="bg-rose-500 h-full transition-all duration-200"
-                style={{ width: `${enemyHpPct}%` }}
-              />
-            </div>
-            <div className="w-full text-xs text-slate-300 mt-1 text-right">
-              {enemy.currentHp} / {enemy.maxHp} HP
-            </div>
-          </div>
-        </div>
-
-        {/* Live Combat Ticker */}
-        <div className="text-center text-xs text-slate-300 bg-black/50 py-2 px-3 rounded">
-          {combatLog}
-        </div>
+        {/* Hero Sprite */}
+        <img
+          src="/images/hero.png"
+          alt=""
+          className="w-28 h-28 object-contain [image-rendering:pixelated] drop-shadow-[0_10px_12px_rgba(0,0,0,0.85)]"
+        />
       </div>
+
+      {/* WALKING MOBS (Right Side - Red M in sketch, walking left toward Hero) */}
+      {enemies
+        .filter((enemy) => enemy.currentHp > 0)
+        .map((enemy) => {
+          const enemyHpPct = Math.max(
+            0,
+            Math.min(100, (enemy.currentHp / enemy.maxHp) * 100),
+          );
+          return (
+            <div
+              key={enemy.id}
+              style={{ left: `${enemy.position}%` }}
+              className="absolute bottom-[50%] z-10 flex -translate-x-1/2 flex-col items-center transition-all duration-700 ease-linear"
+            >
+              <div
+                className={`mb-2 overflow-hidden rounded-full border border-slate-700/80 bg-slate-950/80 shadow-md ${
+                  enemy.isBoss ? "h-3 w-36" : "h-2 w-16 sm:w-24"
+                }`}
+              >
+                <div
+                  className="h-full bg-rose-500 transition-all duration-200"
+                  style={{ width: `${enemyHpPct}%` }}
+                />
+              </div>
+              <img
+                src={enemy.image}
+                alt=""
+                className={`object-contain [image-rendering:pixelated] drop-shadow-[0_10px_12px_rgba(0,0,0,0.85)] ${
+                  enemy.isBoss ? "h-36 w-36" : "h-12 w-12 sm:h-24 sm:w-24"
+                }`}
+              />
+            </div>
+          );
+        })}
+
+      {/* FLOATING DAMAGE NUMBERS */}
+      {floatingDamages.map((dmg) => (
+        <div
+          key={dmg.id}
+          style={{ left: `${dmg.xPercent}%` }}
+          className={`absolute bottom-[54%] -translate-x-1/2 pointer-events-none font-black text-xl tracking-tight animate-bounce drop-shadow-[0_2px_4px_rgba(0,0,0,1)] z-20 ${
+            dmg.isHeroTarget ? "text-rose-400" : "text-amber-300"
+          }`}
+        >
+        {dmg.label ?? `-${formatNumber(dmg.amount)}`}
+        </div>
+      ))}
     </div>
   );
 };
